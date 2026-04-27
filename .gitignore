@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.nexis/
+axl/
+axl-node/axl
+axl-node/axl.exe
+axl-node/private.pem
+logs/
+*.log
+.DS_Store
+*.tsbuildinfo
