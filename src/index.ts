@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { loadConfig } from './utils/validator.js';
 import { logger } from './utils/logger.js';
 import { initAXL } from './privacy/axl.js';
+import { initLocalMemory } from './memory/local.js';
+import { initDecentralizedMemory } from './memory/decentralized.js';
 
 async function main() {
   logger.info('Nexis starting up', { version: '0.1.0' });
@@ -14,7 +16,20 @@ async function main() {
     axlPort: config.axlPort,
   });
 
-  // ── Initialize AXL privacy layer ──────────────────────────────────────────
+  // ── Local memory (SQLite) ─────────────────────────────────────────────────
+  const local = initLocalMemory(config.sqlitePath);
+  const stats = local.getStats();
+  logger.info('[Memory:Local] Ready', stats);
+
+  // ── Decentralized memory (0G Storage) ────────────────────────────────────
+  const decentralized = initDecentralizedMemory(
+    config.zgEvmRpc,
+    config.zgIndexerRpc,
+    config.zgPrivateKey
+  );
+  logger.info('[Memory:0G] Ready', { wallet: decentralized.getWalletAddress() });
+
+  // ── AXL privacy layer ─────────────────────────────────────────────────────
   logger.info('[AXL] Initializing privacy layer...');
   const axl = await initAXL({
     host: config.axlHost,
@@ -32,17 +47,15 @@ async function main() {
   logger.info('Stack: Gensyn AXL | 0G Storage | x402 | ENS | KeeperHub');
 
   // ── Graceful shutdown ────────────────────────────────────────────────────
-  process.on('SIGINT', () => {
+  const shutdown = () => {
     logger.info('Shutting down...');
     axl.stop();
+    local.close();
     process.exit(0);
-  });
+  };
 
-  process.on('SIGTERM', () => {
-    logger.info('Shutting down...');
-    axl.stop();
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 main().catch((err) => {
