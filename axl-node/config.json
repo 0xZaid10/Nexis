@@ -1,0 +1,7 @@
+{
+  "PrivateKeyPath": "axl-node/private.pem",
+  "Peers": [],
+  "api_port": 9002,
+  "bridge_addr": "127.0.0.1",
+  "tcp_port": 7000
+}
