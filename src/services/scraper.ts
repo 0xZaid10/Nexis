@@ -70,8 +70,71 @@ export interface ScrapedCompetitor {
   blog?: { url: string; titles: string[] };
 }
 
+// ─── Known competitor domain map ─────────────────────────────────────────────
+// Maps common company names to their actual domains
+
+const KNOWN_DOMAINS: Record<string, string> = {
+  'rivian': 'rivian.com',
+  'lucid': 'lucidmotors.com',
+  'lucid motors': 'lucidmotors.com',
+  'polestar': 'polestar.com',
+  'ford': 'ford.com',
+  'hyundai': 'hyundai.com',
+  'kia': 'kia.com',
+  'bmw': 'bmw.com',
+  'mercedes': 'mercedes-benz.com',
+  'volkswagen': 'vw.com',
+  'vw': 'vw.com',
+  'gm': 'gm.com',
+  'chevrolet': 'chevrolet.com',
+  'chevy': 'chevrolet.com',
+  'byd': 'byd.com',
+  'tesla': 'tesla.com',
+  'apple': 'apple.com',
+  'google': 'google.com',
+  'microsoft': 'microsoft.com',
+  'amazon': 'amazon.com',
+  'netflix': 'netflix.com',
+  'spotify': 'spotify.com',
+  'notion': 'notion.so',
+  'clickup': 'clickup.com',
+  'asana': 'asana.com',
+  'linear': 'linear.app',
+  'jira': 'atlassian.com',
+  'slack': 'slack.com',
+  'figma': 'figma.com',
+  'airtable': 'airtable.com',
+  'obsidian': 'obsidian.md',
+  'stripe': 'stripe.com',
+  'shopify': 'shopify.com',
+  'hubspot': 'hubspot.com',
+  'salesforce': 'salesforce.com',
+  'zendesk': 'zendesk.com',
+  'intercom': 'intercom.com',
+  'openai': 'openai.com',
+  'anthropic': 'anthropic.com',
+  'midjourney': 'midjourney.com',
+};
+
+function normalizeDomain(input: string): string {
+  // Already a full URL
+  if (input.startsWith('http://') || input.startsWith('https://')) return input;
+
+  const lower = input.toLowerCase().trim();
+
+  // Check known domains map
+  if (KNOWN_DOMAINS[lower]) return `https://${KNOWN_DOMAINS[lower]}`;
+
+  // Has a dot — likely already a domain
+  if (input.includes('.')) return `https://${input}`;
+
+  // Convert name to domain: "Lucid Motors" → lucidmotors.com
+  const slug = lower.replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+  return `https://${slug}.com`;
+}
+
 export async function scrapeCompetitor(domain: string): Promise<ScrapedCompetitor> {
-  const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+  const baseUrl = normalizeDomain(domain);
   const result: ScrapedCompetitor = {
     domain,
     scraped_at: new Date().toISOString(),

@@ -11,40 +11,106 @@ const HEADERS = {
   'Accept': 'application/json',
 };
 
-// Subreddit map for auto-detection
-const SUBREDDIT_MAP: Record<string, string[]> = {
-  saas: ['SaaS', 'startups', 'entrepreneur'],
-  startup: ['startups', 'entrepreneur', 'SaaS'],
-  business: ['smallbusiness', 'entrepreneur', 'startups'],
-  developer: ['programming', 'webdev', 'devops'],
-  devtools: ['devops', 'programming', 'webdev'],
-  ai: ['artificial', 'MachineLearning', 'ChatGPT', 'LocalLLaMA'],
-  llm: ['LocalLLaMA', 'MachineLearning', 'artificial'],
-  crypto: ['CryptoCurrency', 'defi', 'ethereum', 'bitcoin'],
-  defi: ['defi', 'ethereum', 'CryptoCurrency'],
-  web3: ['ethereum', 'defi', 'CryptoCurrency', 'solana'],
-  trading: ['algotrading', 'CryptoCurrency', 'investing'],
-  hr: ['humanresources', 'recruiting', 'jobs'],
-  marketing: ['marketing', 'digital_marketing', 'SEO'],
-  finance: ['personalfinance', 'investing', 'fintech'],
-  productivity: ['productivity', 'projectmanagement', 'getdisciplined'],
-};
+// ─── Domain detection — mutually exclusive domains ────────────────────────────
+// Order matters — more specific domains checked first
+
+interface DomainConfig {
+  keywords: string[];
+  subreddits: string[];
+  defaults: string[]; // always added for this domain
+}
+
+const DOMAINS: DomainConfig[] = [
+  // Crypto / DeFi / Web3 — checked FIRST (most specific)
+  {
+    keywords: ['defi', 'crypto', 'blockchain', 'web3', 'ethereum', 'bitcoin', 'solana', 'nft', 'token', 'wallet', 'onchain', 'on-chain', 'privacy coin', 'mixer', 'tornado', 'zk', 'zero knowledge', 'railgun', 'aztec', 'monero', 'zcash', 'privacy protocol', 'dex', 'protocol', 'yield', 'liquidity', 'swap'],
+    subreddits: ['CryptoCurrency', 'defi', 'ethereum', 'ethfinance', 'ethdev', 'Monero', 'zksync', 'bitcoin', 'solana'],
+    defaults: ['CryptoCurrency', 'defi', 'ethereum'],
+  },
+  // Trading / algotrading
+  {
+    keywords: ['trading', 'algotrading', 'strategy', 'alpha', 'signal', 'quant'],
+    subreddits: ['algotrading', 'CryptoCurrency', 'investing', 'stocks', 'SecurityAnalysis'],
+    defaults: ['algotrading', 'CryptoCurrency'],
+  },
+  // AI / LLM — ONLY if no crypto keywords present
+  {
+    keywords: ['llm', 'gpt', 'chatgpt', 'language model', 'machine learning', 'artificial intelligence', 'openai', 'anthropic', 'local llm', 'ollama'],
+    subreddits: ['LocalLLaMA', 'MachineLearning', 'artificial', 'ChatGPT', 'singularity'],
+    defaults: ['LocalLLaMA', 'MachineLearning'],
+  },
+  // Automotive / EV
+  {
+    keywords: ['tesla', 'electric vehicle', 'rivian', 'lucid', 'polestar', 'automotive', 'car complaint', 'ev complaint', 'supercharger', 'range anxiety', 'charging network', 'ford mach', 'ioniq', 'mustang mach'],
+    subreddits: ['teslamotors', 'electricvehicles', 'RivianOwners', 'cars', 'teslamodel3', 'teslamodely', 'electriccars', 'TeslaLounge'],
+    defaults: ['teslamotors', 'electricvehicles', 'cars'],
+  },
+  // Productivity tools — search competitor communities, not the tool's own sub
+  {
+    keywords: ['notion', 'obsidian', 'clickup', 'asana', 'linear', 'jira', 'confluence', 'roam', 'logseq', 'todoist', 'productivity tool', 'note taking', 'project management tool', 'task manager', 'wiki', 'knowledge base', 'workspace'],
+    subreddits: ['productivity', 'ObsidianMD', 'projectmanagement', 'Notion', 'NotionSo', 'ClickUp', 'PKMS', 'selfhosted', 'gtd'],
+    defaults: ['productivity', 'Notion', 'ObsidianMD'],
+  },
+  // SaaS / Startup / Business
+  {
+    keywords: ['saas', 'startup', 'founder', 'product', 'b2b', 'enterprise', 'customer', 'churn', 'mrr', 'arr'],
+    subreddits: ['SaaS', 'startups', 'entrepreneur', 'smallbusiness', 'Entrepreneur'],
+    defaults: ['SaaS', 'startups'],
+  },
+  // Developer tools
+  {
+    keywords: ['developer', 'devtool', 'api', 'sdk', 'open source', 'github', 'coding', 'programming'],
+    subreddits: ['programming', 'webdev', 'devops', 'opensource', 'ExperiencedDevs'],
+    defaults: ['programming', 'webdev'],
+  },
+  // Privacy (generic — only if not caught by crypto above)
+  {
+    keywords: ['privacy', 'surveillance', 'data protection', 'anonymity', 'vpn', 'tracking'],
+    subreddits: ['privacy', 'privacytoolsIO', 'netsec', 'selfhosted'],
+    defaults: ['privacy'],
+  },
+  // Marketing / Growth
+  {
+    keywords: ['marketing', 'growth', 'seo', 'content', 'social media', 'brand'],
+    subreddits: ['marketing', 'digital_marketing', 'SEO', 'socialmedia'],
+    defaults: ['marketing'],
+  },
+  // Finance
+  {
+    keywords: ['finance', 'investing', 'fintech', 'banking', 'stock', 'portfolio'],
+    subreddits: ['personalfinance', 'investing', 'fintech', 'stocks'],
+    defaults: ['personalfinance', 'investing'],
+  },
+];
+
+// Fallback if nothing matches
+const FALLBACK_SUBREDDITS = ['entrepreneur', 'startups', 'smallbusiness'];
 
 export function detectSubreddits(topic: string, industry = ''): string[] {
   const combined = `${topic} ${industry}`.toLowerCase();
   const found = new Set<string>();
+  let matched = false;
 
-  for (const [keyword, subs] of Object.entries(SUBREDDIT_MAP)) {
-    if (combined.includes(keyword)) {
-      subs.forEach((s) => found.add(s));
+  for (const domain of DOMAINS) {
+    const domainMatched = domain.keywords.some((kw) => combined.includes(kw));
+    if (domainMatched) {
+      // Add domain-specific subreddits
+      domain.subreddits.forEach((s) => found.add(s));
+      matched = true;
+
+      // Once we match crypto domain, don't fall through to AI domain
+      // This prevents "DeFi privacy" from pulling AI subreddits
+      if (domain === DOMAINS[0]) break; // crypto domain matched — stop here
     }
   }
 
-  // Always include general ones
-  found.add('entrepreneur');
-  found.add('startups');
+  if (!matched) {
+    FALLBACK_SUBREDDITS.forEach((s) => found.add(s));
+  }
 
-  return [...found].slice(0, 6);
+  const result = [...found].slice(0, 8);
+  logger.debug('[Reddit] Detected subreddits', { topic: topic.slice(0, 60), subreddits: result });
+  return result;
 }
 
 export interface RedditPost {

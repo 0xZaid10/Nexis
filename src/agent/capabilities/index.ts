@@ -1,6 +1,6 @@
 import { runCompetitiveIntel } from './competitive.js';
 import { runMarketResearch } from './market.js';
-import { runRedditAnalysis } from './reddit.js';
+import { runCommunityResearch } from './community.js';
 import { runContentGeneration } from './content.js';
 import { runOnchainResearch } from './onchain.js';
 import type { CapabilityResult } from '../types.js';
@@ -44,10 +44,18 @@ export const CAPABILITIES: Record<string, CapabilityDefinition> = {
 
   reddit: {
     id: 'reddit',
-    description: 'Analyze Reddit posts to find pain points, sentiment, feature requests, and market gaps',
-    keywords: ['reddit', 'pain point', 'community', 'forum', 'complaints', 'user research', 'validate', 'sentiment'],
+    description: 'Multi-source community research: Reddit, X/Twitter, GitHub Issues, Hacker News, Web — finds pain points, sentiment, and market signals across all platforms',
+    keywords: ['reddit', 'pain point', 'community', 'forum', 'complaints', 'user research', 'validate', 'sentiment', 'twitter', 'github', 'hacker news', 'discussion', 'feedback', 'review', 'users say', 'people say'],
     needs_topic: true,
-    runner: (params) => runRedditAnalysis(params as any),
+    runner: (params) => runCommunityResearch(params as any),
+  },
+
+  community: {
+    id: 'community',
+    description: 'Multi-source community research across Reddit, X/Twitter, GitHub Issues, Hacker News, and Web',
+    keywords: ['community research', 'multi-source', 'cross-platform', 'social listening'],
+    needs_topic: true,
+    runner: (params) => runCommunityResearch(params as any),
   },
 
   blog_post: {
