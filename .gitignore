@@ -1,12 +1,33 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Environment
 .env
+.env.local
+
+# Nexis runtime data
 .nexis/
-axl/
+
+# AXL binary (downloaded separately)
 axl-node/axl
 axl-node/axl.exe
-axl-node/private.pem
+
+# Logs
 logs/
 *.log
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
 *.tsbuildinfo

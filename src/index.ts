@@ -4,6 +4,7 @@ import { logger } from './utils/logger.js';
 import { initAXL } from './privacy/axl.js';
 import { initLocalMemory } from './memory/local.js';
 import { initDecentralizedMemory } from './memory/decentralized.js';
+import { initLLM, getLLM } from './services/llm.js';
 
 async function main() {
   logger.info('Nexis starting up', { version: '0.1.0' });
@@ -16,18 +17,29 @@ async function main() {
     axlPort: config.axlPort,
   });
 
-  // ── Local memory (SQLite) ─────────────────────────────────────────────────
+  // ── Local memory ──────────────────────────────────────────────────────────
   const local = initLocalMemory(config.sqlitePath);
-  const stats = local.getStats();
-  logger.info('[Memory:Local] Ready', stats);
+  logger.info('[Memory:Local] Ready', local.getStats());
 
-  // ── Decentralized memory (0G Storage) ────────────────────────────────────
+  // ── Decentralized memory ──────────────────────────────────────────────────
   const decentralized = initDecentralizedMemory(
     config.zgEvmRpc,
     config.zgIndexerRpc,
     config.zgPrivateKey
   );
   logger.info('[Memory:0G] Ready', { wallet: decentralized.getWalletAddress() });
+
+  // ── LLM ───────────────────────────────────────────────────────────────────
+  const llm = initLLM();
+
+  // Quick smoke test
+  logger.info('[LLM] Running smoke test...');
+  const response = await llm.prompt(
+    'Reply with exactly: Nexis LLM online',
+    'You are a test assistant. Reply with exactly what is asked.',
+    { maxTokens: 20, temperature: 0 }
+  );
+  logger.info('[LLM] Smoke test passed', { response: response.trim() });
 
   // ── AXL privacy layer ─────────────────────────────────────────────────────
   logger.info('[AXL] Initializing privacy layer...');
