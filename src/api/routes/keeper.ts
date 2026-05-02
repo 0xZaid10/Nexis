@@ -187,7 +187,7 @@ router.post('/create-monitor', async (req: Request, res: Response, next: NextFun
         throw createError(`Unknown monitor type: ${type}`, 400, 'INVALID_TYPE');
     }
 
-    res.json({ success: true, ...result });
+    res.json({ ...result });
 
   } catch (err) {
     next(err);
@@ -200,7 +200,7 @@ router.get('/workflows', async (_req: Request, res: Response, next: NextFunction
   try {
     const { runKeeperHub } = await import('../../agent/capabilities/keeper.js');
     const result = await runKeeperHub({ action: 'list' });
-    res.json({ success: true, ...result });
+    res.json({ ...result });
   } catch (err) {
     next(err);
   }

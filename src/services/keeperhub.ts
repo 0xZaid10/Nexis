@@ -32,11 +32,13 @@ export interface KeeperExecution {
 export interface WorkflowNode {
   id: string;
   type: 'trigger' | 'action' | 'condition';
+  position?: { x: number; y: number };
   data: {
     label: string;
     type: string;
     config: Record<string, unknown>;
     status: 'idle';
+    description?: string;
   };
 }
 
@@ -219,16 +221,50 @@ export async function createWhaleMonitorWorkflow(
 ): Promise<KeeperWorkflow> {
   const name = `Nexis Whale Monitor — ${watchAddress.slice(0, 8)}... (>${thresholdETH} ETH)`;
 
+  // KeeperHub pattern for balance monitoring:
+  // Schedule → Get Native Token Balance → Condition (balance > threshold) → Webhook to Nexis
   const nodes: WorkflowNode[] = [
     {
       id: 'trigger-1',
       type: 'trigger',
       data: {
-        label: 'Manual Trigger',
+        label: 'Check Every 15 Minutes',
         type: 'trigger',
-        config: { triggerType: 'Manual' },
+        config: { triggerType: 'Schedule', interval: '15m' },
         status: 'idle',
-        description: `Triggers Nexis research when wallet ${watchAddress.slice(0, 8)}... moves >${thresholdETH} ETH`,
+        description: `Periodically checks wallet ${watchAddress.slice(0, 8)}...`,
+      },
+    },
+    {
+      id: 'balance-1',
+      type: 'action',
+      data: {
+        label: 'Get Wallet Balance',
+        type: 'action',
+        config: {
+          actionType: 'web3/check-balance',
+          network: '1', // Ethereum mainnet
+          address: watchAddress,
+        },
+        status: 'idle',
+        description: `Check ETH balance of ${watchAddress.slice(0, 8)}...`,
+      },
+    },
+    {
+      id: 'condition-1',
+      type: 'condition',
+      data: {
+        label: `Balance > ${thresholdETH} ETH`,
+        type: 'condition',
+        config: {
+          conditions: [{
+            field: `{{@balance-1:Get Wallet Balance.balance}}`,
+            operator: '>',
+            value: thresholdETH.toString(),
+          }],
+        },
+        status: 'idle',
+        description: `Alert if balance exceeds ${thresholdETH} ETH`,
       },
     },
     {
@@ -240,12 +276,11 @@ export async function createWhaleMonitorWorkflow(
         config: {
           actionType: 'webhook',
           url: nexisWebhookUrl,
-          method: 'POST',
-          headers: JSON.stringify({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({
+          payload: JSON.stringify({
             type: 'whale_movement',
             address: watchAddress,
             threshold_eth: thresholdETH,
+            balance: `{{@balance-1:Get Wallet Balance.balance}}`,
             userId: 'keeper-auto',
           }),
         },
@@ -256,7 +291,9 @@ export async function createWhaleMonitorWorkflow(
   ];
 
   const edges: WorkflowEdge[] = [
-    { id: 'edge-1', source: 'trigger-1', target: 'webhook-1' },
+    { id: 'edge-1', source: 'trigger-1', target: 'balance-1' },
+    { id: 'edge-2', source: 'balance-1', target: 'condition-1' },
+    { id: 'edge-3', source: 'condition-1', target: 'webhook-1', sourceHandle: 'true' },
   ];
 
   return createWorkflow(name, nodes, edges);
@@ -265,7 +302,7 @@ export async function createWhaleMonitorWorkflow(
 export async function createScheduledResearchWorkflow(
   nexisWebhookUrl: string,
   researchGoal: string,
-  cronExpression: string = '0 9 * * 1' // Every Monday 9am
+  cronExpression: string = '0 9 * * 1'
 ): Promise<KeeperWorkflow> {
   const name = `Nexis Scheduled Research — ${researchGoal.slice(0, 40)}`;
 
@@ -274,13 +311,11 @@ export async function createScheduledResearchWorkflow(
       id: 'trigger-1',
       type: 'trigger',
       data: {
-        label: 'Schedule Trigger',
+        label: 'Scheduled Trigger',
         type: 'trigger',
-        config: {
-          triggerType: 'schedule',
-          cron: cronExpression,
-        },
+        config: { triggerType: 'Schedule', cron: cronExpression },
         status: 'idle',
+        description: `Runs research on schedule: ${cronExpression}`,
       },
     },
     {
@@ -292,15 +327,14 @@ export async function createScheduledResearchWorkflow(
         config: {
           actionType: 'webhook',
           url: nexisWebhookUrl,
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          payload: JSON.stringify({
             type: 'scheduled_research',
             goal: researchGoal,
             userId: 'keeper-scheduled',
           }),
         },
         status: 'idle',
+        description: 'Triggers Nexis autonomous research run',
       },
     },
   ];
