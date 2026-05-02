@@ -3,6 +3,7 @@ import { runMarketResearch } from './market.js';
 import { runCommunityResearch } from './community.js';
 import { runContentGeneration } from './content.js';
 import { runOnchainResearch } from './onchain.js';
+import { runKeeperHub } from './keeper.js';
 import type { CapabilityResult } from '../types.js';
 
 // ─── Capability Registry ──────────────────────────────────────────────────────
@@ -44,18 +45,18 @@ export const CAPABILITIES: Record<string, CapabilityDefinition> = {
 
   reddit: {
     id: 'reddit',
-    description: 'Multi-source community research: Reddit, X/Twitter, GitHub Issues, Hacker News, Web — finds pain points, sentiment, and market signals across all platforms',
-    keywords: ['reddit', 'pain point', 'community', 'forum', 'complaints', 'user research', 'validate', 'sentiment', 'twitter', 'github', 'hacker news', 'discussion', 'feedback', 'review', 'users say', 'people say'],
+    description: 'Multi-source community research: Reddit, GitHub Issues, Hacker News, Web — finds pain points, sentiment, and market signals across all platforms',
+    keywords: ['reddit', 'pain point', 'community', 'forum', 'complaints', 'user research', 'validate', 'sentiment', 'github', 'hacker news', 'discussion', 'feedback', 'review', 'users say', 'people say'],
     needs_topic: true,
     runner: (params) => runCommunityResearch(params as any),
   },
 
-  community: {
-    id: 'community',
-    description: 'Multi-source community research across Reddit, X/Twitter, GitHub Issues, Hacker News, and Web',
-    keywords: ['community research', 'multi-source', 'cross-platform', 'social listening'],
-    needs_topic: true,
-    runner: (params) => runCommunityResearch(params as any),
+  monitor: {
+    id: 'monitor',
+    description: 'Create autonomous onchain monitoring workflows via KeeperHub — whale alerts with Telegram, DeFi protocol monitoring, scheduled research, LLM-generated complex workflows',
+    keywords: ['monitor', 'watch', 'alert', 'notify', 'track wallet', 'track token', 'schedule', 'automate', 'autonomous', 'keeperhub', 'whale alert', 'price alert', 'set up monitoring', 'telegram', 'defi monitor', 'workflow'],
+    needs_topic: false,
+    runner: (params) => runKeeperHub(params as any),
   },
 
   blog_post: {
