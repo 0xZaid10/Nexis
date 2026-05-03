@@ -93,7 +93,7 @@ export default function Hero() {
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <a
-              href="/dashboard"
+              href={import.meta.env.VITE_DASHBOARD_URL ?? "/dashboard"}
               data-testid="button-start-researching"
               className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-[var(--nexis-accent)] text-black font-semibold text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(0,255,136,0.25)]"
             >

@@ -103,7 +103,7 @@ export default function Header() {
             </button>
 
             <a
-              href="/dashboard"
+              href={import.meta.env.VITE_DASHBOARD_URL ?? "/dashboard"}
               data-testid="link-open-dashboard"
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg border border-border bg-card hover:border-[var(--nexis-accent)] hover:text-[var(--nexis-accent)] transition-all duration-200"
             >
@@ -153,7 +153,7 @@ export default function Header() {
                 );
               })}
               <a
-                href="/dashboard"
+                href={import.meta.env.VITE_DASHBOARD_URL ?? "/dashboard"}
                 className="mt-2 flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-lg border border-[var(--nexis-accent)] text-[var(--nexis-accent)]"
               >
                 Open Dashboard →

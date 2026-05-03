@@ -33,7 +33,7 @@ export default function CTASection() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="/dashboard"
+              href={import.meta.env.VITE_DASHBOARD_URL ?? "/dashboard"}
               data-testid="button-cta-dashboard"
               className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--nexis-accent)] text-black font-semibold transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(0,255,136,0.25)]"
             >
