@@ -19,7 +19,7 @@ export default defineConfig(async ({ mode }) => {
     base: basePath,
     plugins: [
       react(),
-      tailwindcss(),
+      tailwindcss({ optimize: false }),
       runtimeErrorOverlay(),
       ...(mode !== "production" && env.REPL_ID !== undefined
         ? [
@@ -50,6 +50,14 @@ export default defineConfig(async ({ mode }) => {
       host: "0.0.0.0",
       allowedHosts: true,
       fs: { strict: true },
+      // Local dev proxy — forwards /api to the API server.
+      // On Replit the shared reverse proxy handles this automatically.
+      proxy: env.REPL_ID ? {} : {
+        "/api": {
+          target: `http://localhost:${env.API_SERVER_PORT || "8080"}`,
+          changeOrigin: true,
+        },
+      },
     },
     preview: {
       port,
