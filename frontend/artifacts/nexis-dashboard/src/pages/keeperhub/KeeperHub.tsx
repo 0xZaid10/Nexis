@@ -7,13 +7,11 @@ import {
   LogIn,
 } from "lucide-react";
 import {
-  getWorkflows, createKeeperMonitor, simulateWorkflowTrigger,
+  API_BASE, getWorkflows, createKeeperMonitor, simulateWorkflowTrigger,
   type Workflow, type WorkflowType, getWorkflowType,
 } from "@/lib/api";
 import { getTelegramChatId } from "@/pages/settings/Settings";
 import { cn } from "@/lib/utils";
-
-const API_BASE = "/api/nexis";
 const TELEGRAM_BOT = "https://t.me/agent_nexis_bot";
 
 // ─── Workflow type metadata ───────────────────────────────────────────────────

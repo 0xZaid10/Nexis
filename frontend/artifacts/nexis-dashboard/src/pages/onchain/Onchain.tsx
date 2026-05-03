@@ -4,11 +4,9 @@ import {
   Link2, Search, Loader2, AlertCircle, Hash,
   CheckCircle2, RotateCcw,
 } from "lucide-react";
-import { formatAddress, normalizeReport, type NormalizedReport } from "@/lib/api";
+import { API_BASE, formatAddress, normalizeReport, type NormalizedReport } from "@/lib/api";
 import { ResearchReport } from "@/components/research/ResearchReport";
 import { cn } from "@/lib/utils";
-
-const API_BASE = "/api/nexis";
 
 const EXAMPLE_ADDRESSES = [
   "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
