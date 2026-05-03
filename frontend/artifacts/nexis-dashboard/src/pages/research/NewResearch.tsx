@@ -5,10 +5,8 @@ import {
   AlertCircle, CheckCircle2, RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { normalizeReport, type NormalizedReport } from "@/lib/api";
+import { API_BASE, normalizeReport, type NormalizedReport } from "@/lib/api";
 import { ResearchReport } from "@/components/research/ResearchReport";
-
-const API_BASE = "/api/nexis";
 
 const EXAMPLE_QUERIES = [
   "Research the Tornado Cash protocol and privacy concerns",

@@ -1,4 +1,5 @@
-const API_BASE = "/api/nexis";
+export const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "/api/nexis";
 
 // ─── Real API Types (from actual agent output) ────────────────────────────────
 
