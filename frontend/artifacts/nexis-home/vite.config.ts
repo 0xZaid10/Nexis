@@ -7,13 +7,11 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  const rawPort = env.PORT;
-  if (!rawPort) throw new Error("PORT is required. Add it to .env");
+  const rawPort = env.PORT ?? "3000";
   const port = Number(rawPort);
   if (Number.isNaN(port) || port <= 0) throw new Error(`Invalid PORT: "${rawPort}"`);
 
-  const basePath = env.BASE_PATH;
-  if (!basePath) throw new Error("BASE_PATH is required. Add it to .env");
+  const basePath = env.BASE_PATH ?? "/";
 
   return {
     base: basePath,
