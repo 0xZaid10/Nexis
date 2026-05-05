@@ -1,5 +1,6 @@
 export const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "/api/nexis";
+  ((import.meta as unknown as { env: Record<string, string> }).env.VITE_API_BASE_URL ?? "")
+    .replace(/\/$/, "") || "/api/nexis";
 
 // ─── Real API Types (from actual agent output) ────────────────────────────────
 
@@ -310,16 +311,18 @@ function normalizeSession(raw: Record<string, unknown>): NexisSession {
   if (raw.session && typeof raw.session === "object") {
     const s = raw.session as Record<string, unknown>;
     return {
-      ...(s as NexisSession),
+      ...(s as unknown as NexisSession),
       sessionId: (s.sessionId ?? s.id ?? "") as string,
       run_at: (s.run_at ?? s.createdAt ?? "") as string,
+      goal: (s.goal ?? "") as string,
     };
   }
   // Flat shape: { sessionId | id, ... }
   return {
-    ...(raw as NexisSession),
+    ...(raw as unknown as NexisSession),
     sessionId: (raw.sessionId ?? raw.id ?? "") as string,
     run_at: (raw.run_at ?? raw.createdAt ?? "") as string,
+    goal: (raw.goal ?? "") as string,
   };
 }
 
@@ -335,7 +338,6 @@ export async function getSessions(userId: string): Promise<NexisSession[]> {
   const arr: NexisSession[] = Array.isArray(result)
     ? result
     : (result as { sessions?: NexisSession[] }).sessions ?? [];
-  // Normalize each session so sessionId is always populated
   return arr.map((s) => normalizeSession(s as unknown as Record<string, unknown>));
 }
 
@@ -369,13 +371,29 @@ export function getWorkflowType(name: string): WorkflowType {
   return "custom";
 }
 
+// ─── FIXED: bypass apiFetch because KeeperHub response has no top-level
+// "success" field — it has "capability" instead, which causes apiFetch to throw
 export async function getWorkflows(): Promise<Workflow[]> {
   try {
-    const result = await apiFetch<{ data?: { workflows?: Workflow[] }; workflows?: Workflow[] }>("/api/keeper/workflows");
-    const workflows = (result as { data?: { workflows?: Workflow[] } }).data?.workflows
-      ?? (result as { workflows?: Workflow[] }).workflows
-      ?? [];
-    return workflows as Workflow[];
+    const res = await fetch(`${API_BASE}/api/keeper/workflows`, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+
+    // Actual response shape:
+    // { capability: "keeperhub", success: true, data: { type: "workflow_list", workflows: [...] } }
+    const workflows: Workflow[] =
+      json?.data?.workflows ??
+      json?.workflows ??
+      [];
+
+    return workflows.map((w: Workflow) => ({
+      id: w.id,
+      name: w.name,
+      status: w.status ?? "inactive",
+      createdAt: w.createdAt,
+    }));
   } catch {
     return [];
   }
@@ -387,14 +405,17 @@ export async function simulateWorkflowTrigger(workflow: Workflow): Promise<{ suc
   const address = addressMatch?.[0];
 
   const payloads: Record<string, unknown> = {
-    whale: { type: "whale_movement", address: address ?? "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", threshold_eth: 5, userId: "keeper-auto" },
-    scheduled: { type: "scheduled_research", goal: "Research DeFi privacy tools market", userId: "keeper-scheduled" },
-    defi: { type: "defi_monitor", contractAddress: address ?? "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9", protocol: "Aave", userId: "keeper-auto" },
+    whale:       { type: "whale_movement", address: address ?? "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", threshold_eth: 5, userId: "keeper-auto" },
+    scheduled:   { type: "scheduled_research", goal: "Research DeFi privacy tools market", userId: "keeper-scheduled" },
+    defi:        { type: "defi_monitor", contractAddress: address ?? "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9", protocol: "Aave", userId: "keeper-auto" },
     price_alert: { type: "scheduled_research", goal: "Research ETH price movement and market sentiment", userId: "keeper-auto" },
-    custom: { type: "scheduled_research", goal: "Research DeFi privacy tools market", userId: "keeper-auto" },
+    custom:      { type: "scheduled_research", goal: "Research DeFi privacy tools market", userId: "keeper-auto" },
   };
 
-  return apiFetch("/api/keeper/webhook", { method: "POST", body: JSON.stringify(payloads[type] ?? payloads.scheduled) }) as Promise<{ success: boolean; message?: string; goal?: string }>;
+  return apiFetch("/api/keeper/webhook", {
+    method: "POST",
+    body: JSON.stringify(payloads[type] ?? payloads.scheduled),
+  }) as Promise<{ success: boolean; message?: string; goal?: string }>;
 }
 
 export async function createKeeperMonitor(data: unknown): Promise<unknown> {
